@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 
 	// setting pin 26 as input
 	volatile unsigned int* gpio = (volatile unsigned int*)gpio_base;
-    gpio[GPIO_PIN_OFFSET / 10] &= ~(7 << ((GPIO_PIN_OFFSET % 10) * 3));
+    gpio[GPIO_PIN_OFFSET / 10] &= ~(3 << ((GPIO_PIN_OFFSET % 10) * 3));
 
 	while(1)
 	{
@@ -151,6 +151,23 @@ int main(int argc, char* argv[])
 		{
 			while(running)
 			{
+				if ((gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) == 0) {
+
+					clk->enableclk(4);
+
+					printf("\nButton Pressed");
+
+            		// Wait for button release
+           			while ((gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) == 0) {
+                		// Wait for button release
+           			}
+
+					clk->disableclk(4);
+
+					usleep(1000);
+      			}
+
+				/*
 				if (gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) {
             		
 					clk->enableclk(4);
@@ -165,6 +182,7 @@ int main(int argc, char* argv[])
 					clk->disableclk(4);
 					usleep(10000);
        			}
+				*/
 			}
 
 			munmap(gpio_base, REG_BLOCK_SIZE);
@@ -174,6 +192,8 @@ int main(int argc, char* argv[])
 			clk->disableclk(20);
 
 			delete(clk);
+
+			return(0);
 		}
 		else
 		{
