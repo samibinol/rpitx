@@ -154,6 +154,8 @@ int main(int argc, char* argv[])
 				if (gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) {
             		
 					clk->enableclk(4);
+
+					printf("\nButton Pressed");
 					
 					// waiting for button to be released
             		while (gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) {
@@ -161,14 +163,16 @@ int main(int argc, char* argv[])
             		}
 
 					clk->disableclk(4);
+					usleep(10000);
        			}
 			}
-			clk->disableclk(4);
-			clk->disableclk(20);
 
 			munmap(gpio_base, REG_BLOCK_SIZE);
     		close(mem_fd);
-			
+
+			clk->disableclk(4);
+			clk->disableclk(20);
+
 			delete(clk);
 		}
 		else
