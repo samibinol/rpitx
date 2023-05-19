@@ -42,7 +42,7 @@ LDFLAGS_Pissb	= $(LDFLAGS) -lsndfile -lliquid
 	$(CXX) $(CXXFLAGS) -o ../tune tune.cpp  $(LDFLAGS)
 
 ../key : key.cpp 
-	$(CXX) $(CXXFLAGS) -o ../key key.cpp  $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o ../key key.cpp  $(LDFLAGS) -lwiringPi
 
 ../freedv : freedv/freedv.cpp 
 	$(CXX) $(CXXFLAGS) -o ../freedv freedv/freedv.cpp  $(LDFLAGS)

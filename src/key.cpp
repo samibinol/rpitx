@@ -6,19 +6,20 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <wiringPi.h>
 
 bool running=true;
 
-#define PROGRAM_VERSION "0.1"
+#define PROGRAM_VERSION "0.1.1"
+#define BUTTON_PIN 26
 
-//#define BUTTON_PIN 26
-
+/*
 #define BCM_BASE_ADDRESS 0x3F000000  // base address
 #define GPIO_BASE_OFFSET 0x200000    // controller offset
 #define GPIO_PIN_OFFSET  26          // pin 26
 
 #define REG_BLOCK_SIZE   4096        // register block size
-
+*/
 
 void print_usage(void)
 {
@@ -45,11 +46,13 @@ terminate(int num)
 
 int main(int argc, char* argv[])
 {
+	/*
 	int mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (mem_fd < 0) {
         perror("Failed to open /dev/mem. Make sure to use sudo.");
         return 1;
     }
+	*/
 	int a;
 	int anyargs = 0;
 	float SetFrequency=434e6;
@@ -57,6 +60,7 @@ int main(int argc, char* argv[])
 	bool NotKill=false;
 	float ppm=1000.0;
 
+	/*
 	// map physical memory to virtual memory
 	void* gpio_base = mmap(
         NULL,
@@ -75,6 +79,14 @@ int main(int argc, char* argv[])
 	// setting pin 26 as input
 	volatile unsigned int* gpio = (volatile unsigned int*)gpio_base;
     gpio[GPIO_PIN_OFFSET / 10] &= ~(3 << ((GPIO_PIN_OFFSET % 10) * 3));
+	*/
+
+	if (wiringPiSetup() == -1) {
+        printf("Failed to initialize WiringPi\n");
+        return 1;
+    }
+
+	pinMode(BUTTON_PIN, INPUT);
 
 	while(1)
 	{
@@ -151,25 +163,24 @@ int main(int argc, char* argv[])
 		{
 			while(running)
 			{
-				if ((gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) == 0) {
+				if (digitalRead(BUTTON_PIN) == HIGH) {
+            	
+				clk->enableclk(4);
 
-					clk->enableclk(4);
+				printf("\nButton Pressed");
 
-					printf("\nButton Pressed");
-
-            		// Wait for button release
-           			while ((gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) == 0) {
+            	// Wait for button release
+            		while (digitalRead(BUTTON_PIN) == HIGH) {
                 		// Wait for button release
-           			}
+            		}
 
 					clk->disableclk(4);
+					usleep(10000);
 
-					usleep(1000);
-      			}
-
+        		}	
 				/*
 				if (gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) {
-            		
+            		a
 					clk->enableclk(4);
 
 					printf("\nButton Pressed");
