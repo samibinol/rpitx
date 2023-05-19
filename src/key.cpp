@@ -4,13 +4,20 @@
 #include <cstring>
 #include <signal.h>
 #include <stdlib.h>
-#include <wiringPi.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 bool running=true;
 
 #define PROGRAM_VERSION "0.1"
 
-#define BUTTON_PIN 26
+//#define BUTTON_PIN 26
+
+#define BCM_BASE_ADDRESS 0x3F000000  // base address
+#define GPIO_BASE_OFFSET 0x200000    // controller offset
+#define GPIO_PIN_OFFSET  26          // pin 26
+
+#define REG_BLOCK_SIZE   4096        // register block size
 
 
 void print_usage(void)
@@ -38,12 +45,37 @@ terminate(int num)
 
 int main(int argc, char* argv[])
 {
+	int mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+    if (mem_fd < 0) {
+        perror("Failed to open /dev/mem. Make sure to use sudo.");
+        return 1;
+    }
 	int a;
 	int anyargs = 0;
 	float SetFrequency=434e6;
 	dbg_setlevel(1);
 	bool NotKill=false;
 	float ppm=1000.0;
+
+	// map physical memory to virtual memory
+	void* gpio_base = mmap(
+        NULL,
+        REG_BLOCK_SIZE,
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED,
+        mem_fd,
+        BCM_BASE_ADDRESS + GPIO_BASE_OFFSET
+    );
+    if (gpio_base == MAP_FAILED) {
+        perror("Failed to mmap GPIO.");
+        close(mem_fd);
+        return 1;
+    }
+
+	// setting pin 26 as input
+	volatile unsigned int* gpio = (volatile unsigned int*)gpio_base;
+    gpio[GPIO_PIN_OFFSET / 10] &= ~(7 << ((GPIO_PIN_OFFSET % 10) * 3));
+
 	while(1)
 	{
 		a = getopt(argc, argv, "f:ehp:");
@@ -112,7 +144,6 @@ int main(int argc, char* argv[])
 			clk->Setppm(ppm);
 		clk->SetCenterFrequency(SetFrequency,10);
 		clk->SetFrequency(000);
-		clk->enableclk(4);
 		
 		//clk->enableclk(6);//CLK2 : experimental
 		//clk->enableclk(20);//CLK1 duplicate on GPIO20 for more power ?
@@ -120,22 +151,24 @@ int main(int argc, char* argv[])
 		{
 			while(running)
 			{
-				if (digitalRead(BUTTON_PIN) == HIGH) {
-
-					// enabling carrier
-            		clk->enableclk(4);
-
-					// waiting for button/morse key to be released
-         			while (digitalRead(BUTTON_PIN) == HIGH) {
+				if (gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) {
+            		
+					clk->enableclk(4);
+					
+					// waiting for button to be released
+            		while (gpio[GPIO_PIN_OFFSET / 32] & (1 << (GPIO_PIN_OFFSET % 32))) {
 						
             		}
 
-					// disabling carrier
 					clk->disableclk(4);
-        		}
+       			}
 			}
 			clk->disableclk(4);
 			clk->disableclk(20);
+
+			munmap(gpio_base, REG_BLOCK_SIZE);
+    		close(mem_fd);
+			
 			delete(clk);
 		}
 		else
