@@ -196,8 +196,8 @@ int main(int argc, char* argv[])
 				*/
 			}
 
-			munmap(gpio_base, REG_BLOCK_SIZE);
-    		close(mem_fd);
+			//munmap(gpio_base, REG_BLOCK_SIZE);
+    		//close(mem_fd);
 
 			clk->disableclk(4);
 			clk->disableclk(20);
